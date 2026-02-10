@@ -6,21 +6,23 @@ namespace BackgroundJobs.Services;
 public interface IJobService
 {
   Task<List<Job>>GetJobsAsync();
-  Task<List<Job>>GetJobAsync(string id);  
+  Task<Job>GetJobAsync(string id);  
   Task<object>CreateJobAsync(string type);
-  Task <List<Job>>GetWaitingJobAsync(CancellationToken stopToken);
-  Task<String>UpdateJobStatusAsync(int id, string status, string result);
+  Task <Job>GetWaitingJobAsync(CancellationToken stopToken);
+  Task<String>UpdateJobStatusAsync(string id, string status, string result);
 
 };
 
 public class JobService : IJobService
 {
     public readonly string connectionString;
+    public readonly ILogger<JobService> _logger;
 
-    public JobService(IConfiguration config)
+    public JobService(IConfiguration config, ILogger<JobService> logger)
     {
         connectionString = config.GetConnectionString("DefaultConnection")
         ?? throw new Exception("No Default Connection");
+        _logger = logger;
     }
 
     public async Task<List<Job>>GetJobsAsync() // Add Param for Failed?
@@ -48,9 +50,8 @@ public class JobService : IJobService
         return result;
     }
 
-    public async Task<List<Job>>GetJobAsync(string id)
+    public async Task<Job>GetJobAsync(string id)
     {
-        var result = new List<Job>();
         using (var connection = new MySqlConnection(connectionString))
         {
             await connection.OpenAsync();
@@ -62,7 +63,7 @@ public class JobService : IJobService
             {
                 return null;
             }
-            var row = new Job (
+            return new Job (
                 reader["id"].ToString() ?? string.Empty,
                 reader["type"].ToString() ?? string.Empty,
                 reader["status"].ToString() ?? string.Empty,
@@ -70,9 +71,7 @@ public class JobService : IJobService
                 reader.GetDateTime(reader.GetOrdinal("created_at")),
                 reader.GetDateTime(reader.GetOrdinal("updated_at"))
             );
-            result.Add(row); 
         };
-        return result;
     }
 
     public async Task<object>CreateJobAsync(string type)
@@ -89,17 +88,16 @@ public class JobService : IJobService
         };
     }
 
-    public async Task<List<Job>>GetWaitingJobAsync(CancellationToken stopToken)
+    public async Task<Job>GetWaitingJobAsync(CancellationToken stopToken)
     {
-        var result = new List<Job>();
         using (var connection = new MySqlConnection(connectionString))
         {
             await connection.OpenAsync();
-            var sql = "SELECT * FROM jobs WHERE status = 'incomplete' Limit 1 ORDERBY ASC";
+            var sql = "SELECT * FROM jobs WHERE status = 'incomplete' ORDER BY created_at ASC LIMIT 1";
             using var command = new MySqlCommand(sql, connection);
             using var reader = await command.ExecuteReaderAsync();
             await reader.ReadAsync();
-            var row = new Job (
+            return new Job (
                 reader["id"].ToString() ?? string.Empty,
                 reader["type"].ToString() ?? string.Empty,
                 reader["status"].ToString() ?? string.Empty,
@@ -107,17 +105,15 @@ public class JobService : IJobService
                 reader.GetDateTime(reader.GetOrdinal("created_at")),
                 reader.GetDateTime(reader.GetOrdinal("updated_at"))
             );
-            result.Add(row);
         };
-        return result;
     }
 
-    public async Task<string>UpdateJobStatusAsync(int id, string status, string result)
+    public async Task<string>UpdateJobStatusAsync(string id, string status, string result)
     {
         using (var connection = new MySqlConnection(connectionString))
         {
             await connection.OpenAsync();
-            var sql = @"UPDATE jpbs SET status = @status, result = @result Where id = @id";
+            var sql = $"UPDATE jobs SET status = @status, result = @result WHERE id = @id";
             using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@status", status);
             command.Parameters.AddWithValue("@id", id);

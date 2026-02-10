@@ -1,12 +1,14 @@
 using MySqlConnector;
 using BackgroundJobs.Models;
+using System.Text;
 
 namespace BackgroundJobs.Services;
 
 public interface IProcessorService
 {
-    Task<object>GetJobProcessorAsync(string type);
-    Task <List<Player>>DumpPlayersAsync ();
+    Task<string>ConvertToCSV<T>(string id, string type, IEnumerable<T> data);
+    Task<string>GetJobProcessorAsync(Job job, CancellationToken stopToken);
+    Task <string>DumpPlayersAsync (string id);
 }
 
 public class ProcessorService : IProcessorService
@@ -19,14 +21,34 @@ public class ProcessorService : IProcessorService
         ?? throw new Exception("No Default Connection");
     }
 
-    public async Task<Object>GetJobProcessorAsync(string type)
+    public async Task<string>ConvertToCSV<T>(string id, string type, IEnumerable<T> data)
     {
+         var sb = new StringBuilder();
+
+        sb.AppendLine(""); // Columns
+ 
+        // Loop data
+        sb.AppendLine("");
+ 
+        var filename = $"{type}_{id}_{DateTime.UtcNow:ddMMYYYYHHmmss}.csv";
+        var folder = Path.Combine(AppContext.BaseDirectory, "exports");
+        Directory.CreateDirectory(folder);
+
+        var location = Path.Combine(filename, folder);
+        await File.WriteAllTextAsync(location, sb.ToString());
+
+        return $"/exports/{location}";   
+    }
+
+    public async Task<string>GetJobProcessorAsync(Job job, CancellationToken stopToken)
+    {
+        string result;
         try
         {
-            switch (type)
+            switch (job.Type)
             {
-                case "PlayerDump":
-                    return DumpPlayersAsync();
+                case "PlayersDump":
+                    return await DumpPlayersAsync(job.Id);
 
                 default:
                     return null;
@@ -37,9 +59,10 @@ public class ProcessorService : IProcessorService
         {
             return null;
         }
+        return result;
     }
 
-    public async Task<List<Player>>DumpPlayersAsync ()
+    public async Task<string>DumpPlayersAsync (string id)
     {
         var result = new List<Player>();
         using (var connection = new MySqlConnection(connectionString))
@@ -67,7 +90,8 @@ public class ProcessorService : IProcessorService
               result.Add(row);
             };  
         };
-        return result;   
+        var file = await ConvertToCSV(id, "playersDump", result);
+        return "result";   // Will return File location for CSV
     }
 
 }

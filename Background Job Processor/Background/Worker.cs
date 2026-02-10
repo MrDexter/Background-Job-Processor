@@ -1,49 +1,67 @@
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using BackgroundJobs.Services;
 
 namespace BackgroundJobs.Background;
 
-public class BackgroundService
+public class JobWorker : BackgroundService
 {
-    
-}
+    // private readonly IJobService _jobService;
+    // private readonly IProcessorService _processorService;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<JobWorker> _logger;
 
-public class BackgroundWorker : BackgroundService
-{
-    private readonly IJobService JobService;
-    private readonly IProcessorService ProcessorService;
-    private readonly ILogger Logger;
-
-    protected async Task ExecuteAsync(CancellationToken stopToken)
+    public JobWorker(IServiceProvider serviceProvider, ILogger<JobWorker> logger)
     {
-        Logger.LogInformation("Background Worker Started");
+        // _jobService = jobService;
+        // _processorService = processorService;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stopToken)
+    {
+        _logger.LogInformation("Background Worker Started");
 
         while (!stopToken.IsCancellationRequested)
         {
             try
             {
-                var job = JobService.GetWaitingJobAsync(stopToken);
+                 using var scope = _serviceProvider.CreateScope();
+
+                var _jobService = scope.ServiceProvider.GetRequiredService<IJobService>();
+                var _processorService = scope.ServiceProvider.GetRequiredService<IProcessorService>();
+
+
+                var job = await _jobService.GetWaitingJobAsync(stopToken);
                 if (job is null)
                 {
                     // No job found, wait
-                    Logger.LogInformation("No Job Found Waiting...");
+                    _logger.LogInformation("No Job Found Waiting...");
                     await Task.Delay(TimeSpan.FromSeconds(5), stopToken);
                     continue;
                 }
-                Logger.LogInformation("Job Found Starting Processing");
-                var processor = ProcessorService.GetJobProcessorAsync("PlayerDump"); // job.Type not working?
+                _logger.LogInformation("Job Found Starting Processing");
+                _logger.LogInformation(job.Id.ToString());
 
-                if (processor is null)
+                var status = await _jobService.UpdateJobStatusAsync(job.Id, "Processing", "Processing");
+
+                _logger.LogInformation("Processing Started");
+                // Perform Process
+                var result = await _processorService.GetJobProcessorAsync(job, stopToken);
+
+                if (result is null)
                 {
-                    // No Propcess found
-                    JobService.UpdateJobStatusAsync(job.Id, "Failed", "No Processor Found");
+                    _logger.LogInformation("Processing Failed, Processor Not Found");
+                    await _jobService.UpdateJobStatusAsync(job.Id, "Failed", "No Processor Found");
                     continue;
                 }
-
-                await JobService.UpdateJobStatusAsync(job.Id, "Processing", "Processing");
-                // Perform Process
-            //    ProcessorService.processor();
-                await JobService.UpdateJobStatusAsync(job.Id, "Complete", "Complete");
+                _logger.LogInformation("Processing Complete");
+                await _jobService.UpdateJobStatusAsync(job.Id, "Complete", result);
             }
             catch (OperationCanceledException) // Canceled
             {

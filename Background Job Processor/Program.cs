@@ -1,6 +1,7 @@
-using System.ComponentModel;
+using Microsoft.Extensions.Hosting;
 using BackgroundJobs.Endpoints;
 using BackgroundJobs.Services;
+using BackgroundJobs.Background;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +11,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IProcessorService, ProcessorService>();
-// builder.Services.AddHostedService<BackgroundWorker>();
+builder.Services.AddHostedService<JobWorker>();
 
 var app = builder.Build();
 

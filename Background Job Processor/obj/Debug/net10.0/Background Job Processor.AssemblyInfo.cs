@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Background Job Processor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d1df53655d396bf45f22e619aa377686dba6d983")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b92a1d05d340587ac119c13e5b2cbacabbd8f467")]
 [assembly: System.Reflection.AssemblyProductAttribute("Background Job Processor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Background Job Processor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

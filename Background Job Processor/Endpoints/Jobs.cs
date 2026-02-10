@@ -23,6 +23,30 @@ public static class JobEndpoints
             {return Results.NotFound();};
             return Results.Ok(result);
         });
+
+        group.MapGet("/failed", async (IJobService jobs) =>
+        {
+           // Returned all failed, Maybe Canceled too? 
+        });
+
+        group.MapGet("/{id}/cancel", async (string id, IJobService jobs) =>
+        {
+            // Get Job, If Incomplete, Cancel. Add Authorization
+        });
+
+        group.MapGet("/{id}/reset", async (string id, IJobService jobs) =>
+        {
+           // Get Job, if Failed, Canceled etc. Reset to Incomplete 
+        });
+
+        group.MapGet("/{id}/download", async (string id, IJobService jobs) =>
+        {
+            var job = await jobs.GetJobAsync(id);
+            if (job is null || job.Status != "Complete" || string.IsNullOrEmpty(job.Result))
+                {return Results.NotFound();};
+            return Results.Ok(new {job.Id, job.Result}); // Change to actual file upload in future
+        });
+
         return app;
     }
 }
