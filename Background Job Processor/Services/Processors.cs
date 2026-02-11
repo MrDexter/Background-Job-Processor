@@ -6,49 +6,64 @@ namespace BackgroundJobs.Services;
 
 public interface IProcessorService
 {
-    Task<string>ConvertToCSV<T>(string id, string type, IEnumerable<T> data);
+    Task<string>ConvertToCSV<T>(string id, string type, IEnumerable<T> data, CancellationToken stopToken);
     Task<string>GetJobProcessorAsync(Job job, CancellationToken stopToken);
-    Task <string>DumpPlayersAsync (string id);
+    Task <string>DumpPlayersAsync (string id, CancellationToken stopToken);
 }
 
 public class ProcessorService : IProcessorService
 {
     public readonly string connectionString;
+    public readonly ILogger<ProcessorService> _logger;
 
-    public ProcessorService(IConfiguration config)
+    public ProcessorService(IConfiguration config, ILogger<ProcessorService> logger)
     {
         connectionString = config.GetConnectionString("DefaultConnection")
         ?? throw new Exception("No Default Connection");
+        _logger = logger;
     }
 
-    public async Task<string>ConvertToCSV<T>(string id, string type, IEnumerable<T> data)
+    public async Task<string>ConvertToCSV<T>(string id, string type, IEnumerable<T> data, CancellationToken stopToken)
     {
          var sb = new StringBuilder();
 
-        sb.AppendLine(""); // Columns
+        var properties = typeof(T).GetProperties();
+
+        sb.AppendLine(string.Join(", ", properties.Select(p => p.Name))); // Columns
  
-        // Loop data
-        sb.AppendLine("");
+        foreach( var item in data)
+        {
+            stopToken.ThrowIfCancellationRequested();
+
+            var values = properties.Select(p =>
+            {
+                var value = p.GetValue(item);
+                if (value == null) return "";
+                return value.ToString();
+            });
+            sb.AppendLine(string.Join(",", values));
+        };
  
         var filename = $"{type}_{id}_{DateTime.UtcNow:ddMMYYYYHHmmss}.csv";
-        var folder = Path.Combine(AppContext.BaseDirectory, "exports");
+        var folder = Path.Combine(Directory.GetCurrentDirectory(), "exports");
         Directory.CreateDirectory(folder);
 
-        var location = Path.Combine(filename, folder);
+        var location = Path.Combine(folder, filename);
         await File.WriteAllTextAsync(location, sb.ToString());
 
-        return $"/exports/{location}";   
+        return location;   
     }
 
     public async Task<string>GetJobProcessorAsync(Job job, CancellationToken stopToken)
     {
-        string result;
+        _logger.LogInformation("Process Starting");
+        _logger.LogInformation(job.Type);
         try
         {
             switch (job.Type)
             {
                 case "PlayersDump":
-                    return await DumpPlayersAsync(job.Id);
+                    return await DumpPlayersAsync(job.Id, stopToken);
 
                 default:
                     return null;
@@ -57,12 +72,12 @@ public class ProcessorService : IProcessorService
         }
         catch (Exception exception)
         {
+            _logger.LogError(exception, "Failed Processor");
             return null;
         }
-        return result;
     }
 
-    public async Task<string>DumpPlayersAsync (string id)
+    public async Task<string>DumpPlayersAsync (string id, CancellationToken stopToken)
     {
         var result = new List<Player>();
         using (var connection = new MySqlConnection(connectionString))
@@ -90,8 +105,8 @@ public class ProcessorService : IProcessorService
               result.Add(row);
             };  
         };
-        var file = await ConvertToCSV(id, "playersDump", result);
-        return "result";   // Will return File location for CSV
+        var file = await ConvertToCSV(id, "playersDump", result, stopToken);
+        return file;
     }
 
 }
