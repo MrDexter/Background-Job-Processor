@@ -31,7 +31,7 @@ public class JobWorker : BackgroundService
         {
             try
             {
-                 using var scope = _serviceProvider.CreateScope();
+                using var scope = _serviceProvider.CreateScope();
 
                 var _jobService = scope.ServiceProvider.GetRequiredService<IJobService>();
                 var _processorService = scope.ServiceProvider.GetRequiredService<IProcessorService>();
@@ -46,11 +46,9 @@ public class JobWorker : BackgroundService
                     continue;
                 }
                 _logger.LogInformation("Job Found Starting Processing");
-                _logger.LogInformation(job.Id.ToString());
 
-                var status = await _jobService.UpdateJobStatusAsync(job.Id, "Processing", "Processing");
+                // var status = await _jobService.UpdateJobStatusAsync(job.Id, "Processing", "Processing");
 
-                _logger.LogInformation("Processing Started");
                 // Perform Process
                 var result = await _processorService.GetJobProcessorAsync(job, stopToken);
 

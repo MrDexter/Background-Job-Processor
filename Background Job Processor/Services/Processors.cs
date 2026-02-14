@@ -1,4 +1,4 @@
-using MySqlConnector;
+using Microsoft.Data.SqlClient;
 using BackgroundJobs.Models;
 using System.Text;
 
@@ -56,8 +56,6 @@ public class ProcessorService : IProcessorService
 
     public async Task<string>GetJobProcessorAsync(Job job, CancellationToken stopToken)
     {
-        _logger.LogInformation("Process Starting");
-        _logger.LogInformation(job.Type);
         try
         {
             switch (job.Type)
@@ -80,11 +78,11 @@ public class ProcessorService : IProcessorService
     public async Task<string>DumpPlayersAsync (string id, CancellationToken stopToken)
     {
         var result = new List<Player>();
-        using (var connection = new MySqlConnection(connectionString))
+        using (var connection = new SqlConnection(connectionString))
         {
           await connection.OpenAsync();
           var sql = "Select uid, name, playerid, cash, bankacc, cartelCredits, adminLevel, copLevel, ionLevel, medicLevel, last_seen, insert_time FROM players";
-          using var command = new MySqlCommand(sql, connection);
+          using var command = new SqlCommand(sql, connection);
           using var reader = await command.ExecuteReaderAsync();
           while (await reader.ReadAsync())
             {
