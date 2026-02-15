@@ -22,5 +22,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.MapJobEndpoints();
 app.MapPlayerEndpoints();
+app.MapMiscEndpoints();
 
 app.Run();
