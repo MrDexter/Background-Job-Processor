@@ -24,7 +24,7 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Build with dotnet
-        run: dotnet build BackgroundJobProcessor.sln Release
+        run: dotnet build BackgroundJobProcessor.sln -c Release
 
       - name: dotnet publish
         run: dotnet publish BackgroundJobProcessor.sln -c Release -o "${{env.DOTNET_ROOT}}/myapp"
