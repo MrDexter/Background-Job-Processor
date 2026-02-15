@@ -1,41 +1,36 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy dotnet core project to Azure Function App - BackgroundProcessor
+name: Build and deploy dotnet to Azure Function App - BackgroundProcessor
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: './Background Job Processor' # set this to the path to your web app project, defaults to the repository root
-  DOTNET_VERSION: '10.0.x' # set this to the dotnet version to use
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './Background Job Processor'
+  DOTNET_VERSION: '8.0.x'   # see Fix #2 below
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
-      - name: 'Checkout GitHub Action'
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
-        uses: actions/setup-dotnet@v1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: 'Resolve Project Dependencies Using Dotnet'
+      - name: Publish
         shell: bash
         run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release --output ./output
+          pushd "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+          dotnet publish -c Release -o ./publish
           popd
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -43,12 +38,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1F04B0AA8C8944A1ABDE8B69A38F4C09 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_7252317C2A014155AAF1D4C8356878A7 }}
 
-      - name: 'Run Azure Functions Action'
+      - name: Deploy
         uses: Azure/functions-action@v1
-        id: fa
         with:
           app-name: 'BackgroundProcessor'
           slot-name: 'Production'
-          package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          
-
+          package: "${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/publish"
