@@ -1,2 +1,0 @@
-dotnet new sln -n BackgroundJobProcessor
-dotnet sln BackgroundJobProcessor.sln add "Background Job Processor/Background Job Processor.csproj"
