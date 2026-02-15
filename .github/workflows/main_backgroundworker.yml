@@ -24,10 +24,10 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Build with dotnet
-        run: dotnet build Background Job Processor.sln Release
+        run: dotnet build BackgroundJobProcessor.sln Release
 
       - name: dotnet publish
-        run: dotnet publish Background Job Processor.sln -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish BackgroundJobProcessor.sln -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
