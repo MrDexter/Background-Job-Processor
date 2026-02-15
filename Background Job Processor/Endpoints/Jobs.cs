@@ -39,12 +39,14 @@ public static class JobEndpoints
            // Get Job, if Failed, Canceled etc. Reset to Incomplete 
         });
 
-        group.MapGet("/{id}/download", async (string id, IJobService jobs) =>
+        group.MapGet("/{id}/download", async (string id, IJobService jobs, IProcessorService processor) =>
         {
             var job = await jobs.GetJobAsync(id);
             if (job is null || job.Status != "Complete" || string.IsNullOrEmpty(job.Result))
                 {return Results.NotFound();};
-            return Results.Ok(new {job.Id, job.Result}); // Change to actual file upload in future
+            var url = await processor.GetDownloadUrl(job.Result, TimeSpan.FromMinutes(5));
+            
+            return Results.Redirect(url);
         });
 
         return app;

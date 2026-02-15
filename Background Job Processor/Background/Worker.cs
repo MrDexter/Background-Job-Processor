@@ -10,15 +10,11 @@ namespace BackgroundJobs.Background;
 
 public class JobWorker : BackgroundService
 {
-    // private readonly IJobService _jobService;
-    // private readonly IProcessorService _processorService;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<JobWorker> _logger;
 
     public JobWorker(IServiceProvider serviceProvider, ILogger<JobWorker> logger)
     {
-        // _jobService = jobService;
-        // _processorService = processorService;
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
@@ -35,7 +31,6 @@ public class JobWorker : BackgroundService
 
                 var _jobService = scope.ServiceProvider.GetRequiredService<IJobService>();
                 var _processorService = scope.ServiceProvider.GetRequiredService<IProcessorService>();
-
 
                 var job = await _jobService.GetWaitingJobAsync(stopToken);
                 if (job is null)
