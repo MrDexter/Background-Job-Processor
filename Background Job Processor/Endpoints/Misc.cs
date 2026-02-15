@@ -7,7 +7,7 @@ public static class MiscEndpoints
     {
         app.MapGet("/health", async () =>
         {
-            Results.Ok("Ok");   
+            return Results.Ok("Ok");   
         });
 
         app.MapGet("/debug/config", (IConfiguration cfg) =>
@@ -17,6 +17,17 @@ public static class MiscEndpoints
             var container = cfg["Storage:Container"] ?? "(null)";
 
             return Results.Ok(new { hasSql, hasBlob, container });
+        });
+
+        app.MapGet("/debug/sql", async (IConfiguration cfg) =>
+{
+            await using var conn = new SqlConnection(cfg.GetConnectionString("DefaultConnection"));
+            await conn.OpenAsync();
+
+            await using var cmd = new SqlCommand("SELECT 1", conn);
+            var x = (int)await cmd.ExecuteScalarAsync();
+
+            return Results.Ok(new { ok = x == 1 });
         });
 
 
