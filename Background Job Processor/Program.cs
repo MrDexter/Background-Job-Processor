@@ -26,4 +26,11 @@ app.MapJobEndpoints();
 app.MapPlayerEndpoints();
 app.MapMiscEndpoints();
 
+app.MapGet("/", () => Results.Ok(new { 
+    Service = "DecsPage Backend Worker", 
+    Status = "Online", 
+    Version = "1.0.0",
+    // Documentation = "/swagger" // Soon / Next...
+}));
+
 app.Run();
