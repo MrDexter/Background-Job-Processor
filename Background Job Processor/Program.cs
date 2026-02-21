@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Hosting;
+using Scalar.AspNetCore;
 using BackgroundJobs.Endpoints;
 using BackgroundJobs.Services;
 using BackgroundJobs.Background;
@@ -15,6 +16,15 @@ builder.Services.AddScoped<IProcessorService, ProcessorService>();
 // builder.Services.AddHostedService<JobWorker>();
 builder.Services.AddScoped<IJobWorker, JobWorker>();
 
+builder.Services.AddOpenApi(options => {
+    options.AddDocumentTransformer((document, context, cancellationToken) => {
+        document.Info.Title = "Declan Page's Background Worker API";
+        document.Info.Version = "v1.0.0";
+        document.Info.Description = "Backend service for background task processing";
+        return Task.CompletedTask;
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -25,12 +35,11 @@ app.UseHttpsRedirection();
 app.MapJobEndpoints();
 app.MapPlayerEndpoints();
 app.MapMiscEndpoints();
+app.MapOpenApi();
+app.MapScalarApiReference();
 
-app.MapGet("/", () => Results.Ok(new { 
-    Service = "DecsPage Backend Worker", 
-    Status = "Online", 
-    Version = "1.0.0",
-    // Documentation = "/swagger" // Soon / Next...
-}));
+
+
+app.MapGet("/", () => Results.Redirect("/scalar/"));
 
 app.Run();
