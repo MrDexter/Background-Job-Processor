@@ -18,7 +18,7 @@ builder.Services.AddScoped<IJobWorker, JobWorker>();
 
 builder.Services.AddOpenApi(options => {
     options.AddDocumentTransformer((document, context, cancellationToken) => {
-        document.Info.Title = "Declan Page's Background Worker API";
+        document.Info.Title = "Dec's Background Worker API";
         document.Info.Version = "v1.0.0";
         document.Info.Description = "Backend service for background task processing";
         return Task.CompletedTask;
@@ -37,8 +37,6 @@ app.MapPlayerEndpoints();
 app.MapMiscEndpoints();
 app.MapOpenApi();
 app.MapScalarApiReference();
-
-
 
 app.MapGet("/", () => Results.Redirect("/scalar/"));
 
