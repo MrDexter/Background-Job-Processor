@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using BackgroundJobs.Models;
+using BackgroundJobs.Background;
 
 namespace BackgroundJobs.Services;
 
@@ -8,6 +9,7 @@ public interface IJobService
   Task<List<Job>>GetJobsAsync();
   Task<Job>GetJobAsync(string id);  
   Task<object>CreateJobAsync(string type);
+  Task StartWorker();
   Task <Job>GetWaitingJobAsync(CancellationToken stopToken);
   Task<String>UpdateJobStatusAsync(string id, string status, string result);
 
@@ -17,12 +19,14 @@ public class JobService : IJobService
 {
     public readonly string connectionString;
     public readonly ILogger<JobService> _logger;
+    public readonly IJobWorker _jobWorker;
 
-    public JobService(IConfiguration config, ILogger<JobService> logger)
+    public JobService(IConfiguration config, ILogger<JobService> logger, IJobWorker jobWorker)
     {
         connectionString = config.GetConnectionString("DefaultConnection")
         ?? throw new Exception("No Default Connection");
         _logger = logger;
+        _jobWorker = jobWorker;
     }
 
     public async Task<List<Job>>GetJobsAsync() // Add Param for Failed?
@@ -83,9 +87,17 @@ public class JobService : IJobService
             using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@type", type);
             command.Parameters.AddWithValue("@payload", DBNull.Value);
-            var id = Convert.ToInt32(command.ExecuteScalar());
+            var id = Convert.ToInt32(await command.ExecuteScalarAsync());
+            // Manual Trigger Worker loop on job create
+            _ = StartWorker();
             return id;
         };
+    }
+
+    public async Task StartWorker()
+    {
+        using var stopToken = new CancellationTokenSource(TimeSpan.FromSeconds(25)); // Expires after 25 seconds
+        await _jobWorker.ExecuteAsync(stopToken.Token);
     }
 
     public async Task<Job>GetWaitingJobAsync(CancellationToken stopToken)
@@ -96,7 +108,8 @@ public class JobService : IJobService
             var sql = "WITH cte AS (SELECT TOP (1) * FROM jobs WHERE status = 'incomplete' ORDER BY created_at ASC) UPDATE cte SET status = 'processing', updated_at = GETDATE() OUTPUT INSERTED.*;";
             using var command = new SqlCommand(sql, connection);
             using var reader = await command.ExecuteReaderAsync();
-            await reader.ReadAsync();
+            if (!await reader.ReadAsync())
+            {return null;};
             return new Job (
                 reader["id"].ToString() ?? string.Empty,
                 reader["type"].ToString() ?? string.Empty,

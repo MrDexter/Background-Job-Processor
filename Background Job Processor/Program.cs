@@ -11,7 +11,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IProcessorService, ProcessorService>();
-builder.Services.AddHostedService<JobWorker>();
+// For the Azure App Service test platform, Disable this and do a manual trigger on job creation to save on resources
+// builder.Services.AddHostedService<JobWorker>();
+builder.Services.AddScoped<IJobWorker, JobWorker>();
 
 var app = builder.Build();
 
