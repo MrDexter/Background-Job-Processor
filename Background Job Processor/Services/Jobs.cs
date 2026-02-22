@@ -9,7 +9,6 @@ public interface IJobService
   Task<List<Job>>GetJobsAsync();
   Task<Job>GetJobAsync(string id);  
   Task<object>CreateJobAsync(string type);
-  Task StartWorker();
   Task <Job>GetWaitingJobAsync(CancellationToken stopToken);
   Task<String>UpdateJobStatusAsync(string id, string status, string result);
 
@@ -19,14 +18,12 @@ public class JobService : IJobService
 {
     public readonly string connectionString;
     public readonly ILogger<JobService> _logger;
-    public readonly IJobWorker _jobWorker;
 
-    public JobService(IConfiguration config, ILogger<JobService> logger, IJobWorker jobWorker)
+    public JobService(IConfiguration config, ILogger<JobService> logger)
     {
         connectionString = config.GetConnectionString("DefaultConnection")
         ?? throw new Exception("No Default Connection");
         _logger = logger;
-        _jobWorker = jobWorker;
     }
 
     public async Task<List<Job>>GetJobsAsync() // Add Param for Failed?
@@ -88,17 +85,10 @@ public class JobService : IJobService
             command.Parameters.AddWithValue("@type", type);
             command.Parameters.AddWithValue("@payload", DBNull.Value);
             var id = Convert.ToInt32(await command.ExecuteScalarAsync());
-            // Manual Trigger Worker loop on job create
-            _ = StartWorker();
             return id;
         };
     }
 
-    public async Task StartWorker()
-    {
-        using var stopToken = new CancellationTokenSource(TimeSpan.FromSeconds(25)); // Expires after 25 seconds
-        await _jobWorker.ExecuteAsync(stopToken.Token);
-    }
 
     public async Task<Job>GetWaitingJobAsync(CancellationToken stopToken)
     {

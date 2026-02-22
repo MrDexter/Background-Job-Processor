@@ -8,25 +8,19 @@ using BackgroundJobs.Services;
 
 namespace BackgroundJobs.Background;
 
-// Added for the manual trigger for Azure hosting. Not needed normally with the "BackgroundService" and Protected override Task
-public interface IJobWorker
-{
-    Task ExecuteAsync(CancellationToken stopToken);
-}
 
-public class JobWorker : IJobWorker //BackgroundService
+public class JobWorker : BackgroundService
 {
-    private readonly IServiceScopeFactory _serviceProvider; //IServiceProvider
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<JobWorker> _logger;
 
-    public JobWorker(IServiceScopeFactory  serviceProvider, ILogger<JobWorker> logger)
+    public JobWorker(IServiceProvider  serviceProvider, ILogger<JobWorker> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
-    // protected override async Task ExecuteAsync(CancellationToken stopToken)
-    public async Task ExecuteAsync(CancellationToken stopToken)
+    protected override async Task ExecuteAsync(CancellationToken stopToken)
     {
         _logger.LogInformation("Background Worker Started");
 

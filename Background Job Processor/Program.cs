@@ -12,9 +12,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IProcessorService, ProcessorService>();
-// For the Azure App Service test platform, Disable this and do a manual trigger on job creation to save on resources
-// builder.Services.AddHostedService<JobWorker>();
-builder.Services.AddScoped<IJobWorker, JobWorker>();
+builder.Services.AddHostedService<JobWorker>();
 
 builder.Services.AddOpenApi(options => {
     options.AddDocumentTransformer((document, context, cancellationToken) => {
